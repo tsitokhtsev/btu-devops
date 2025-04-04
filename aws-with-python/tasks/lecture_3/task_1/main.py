@@ -3,8 +3,14 @@ from botocore.exceptions import ClientError
 from auth import init_client
 from bucket.crud import list_buckets, create_bucket, delete_bucket, bucket_exists
 from bucket.policy import read_bucket_policy, assign_policy
-from object.crud import download_file_and_upload_to_s3, get_objects
+from object.crud import (
+    download_file_and_upload_to_s3,
+    get_objects,
+    multipart_upload,
+    upload_file,
+)
 from bucket.encryption import set_bucket_encryption, read_bucket_encryption
+from object.policy import set_lifecycle_policy
 import argparse
 
 parser = argparse.ArgumentParser(
@@ -181,14 +187,24 @@ parser.add_argument(
     default="False",
 )
 
+parser.add_argument("-uf", "--upload_file", type=str, help="Upload file", default=None)
+
 parser.add_argument(
-    "-uf",
-    "--upload_file",
+    "-mpu",
+    "--multipart_upload",
     type=str,
-    help="Upload file",
+    help="Upload file using multipart upload",
+    default=None,
+)
+
+parser.add_argument(
+    "-lp",
+    "--lifecycle_policy",
+    type=int,
+    help="Number of days after which objects will be deleted",
     nargs="?",
-    const="True",
-    default="False",
+    const=120,
+    default=None,
 )
 
 
@@ -239,6 +255,20 @@ def main():
 
         if args.list_objects == "True":
             get_objects(s3_client, args.bucket_name)
+
+        if args.upload_file:
+            if upload_file(s3_client, args.upload_file, args.bucket_name):
+                print("File uploaded successfully")
+
+        if args.multipart_upload:
+            if multipart_upload(s3_client, args.multipart_upload, args.bucket_name):
+                print("File uploaded successfully using multipart upload")
+
+        if args.lifecycle_policy:
+            if set_lifecycle_policy(s3_client, args.bucket_name, args.lifecycle_policy):
+                print(
+                    f"Lifecycle policy set to delete objects after {args.lifecycle_policy} days"
+                )
 
     if args.list_buckets:
         buckets = list_buckets(s3_client)
