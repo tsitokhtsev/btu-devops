@@ -45,6 +45,7 @@ def multiple_policy(bucket_name):
 
 def assign_policy(aws_s3_client, policy_function, bucket_name):
     policy = None
+    aws_s3_client.delete_public_access_block(Bucket=bucket_name)
     if policy_function == "public_read_policy":
         policy = public_read_policy(bucket_name)
     elif policy_function == "multiple_policy":

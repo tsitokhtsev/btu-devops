@@ -3,7 +3,7 @@ from botocore.exceptions import ClientError
 from auth import init_client
 from bucket.crud import list_buckets, create_bucket, delete_bucket, bucket_exists
 from bucket.policy import read_bucket_policy, assign_policy
-from object.crud import download_file_and_upload_to_s3, get_objects
+from object.crud import download_file_and_upload_to_s3, get_objects, upload_file
 from bucket.encryption import set_bucket_encryption, read_bucket_encryption
 import argparse
 
@@ -239,6 +239,9 @@ def main():
 
         if args.list_objects == "True":
             get_objects(s3_client, args.bucket_name)
+
+        if args.upload_file == "True":
+            upload_file(s3_client, args.upload_file, args.bucket_name)
 
     if args.list_buckets:
         buckets = list_buckets(s3_client)

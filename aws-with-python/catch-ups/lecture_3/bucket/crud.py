@@ -11,7 +11,7 @@ def create_bucket(aws_s3_client, bucket_name, region) -> bool:
     location = {"LocationConstraint": region}
     # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3/client/create_bucket.html
     response = aws_s3_client.create_bucket(
-        Bucket=bucket_name, CreateBucketConfiguration=location
+        Bucket=f"btu-{bucket_name}", CreateBucketConfiguration=location
     )
     status_code = response["ResponseMetadata"]["HTTPStatusCode"]
     if status_code == 200:
