@@ -4,6 +4,7 @@ from auth import init_client
 from bucket.crud import list_buckets, create_bucket, delete_bucket, bucket_exists
 from bucket.policy import read_bucket_policy, assign_policy
 from object.crud import (
+    delete_file,
     download_file_and_upload_to_s3,
     get_objects,
     multipart_upload,
@@ -207,6 +208,14 @@ parser.add_argument(
     default=None,
 )
 
+parser.add_argument(
+    "-df",
+    "--delete_file",
+    type=str,
+    help="Delete file from bucket",
+    default=None,
+)
+
 
 def main():
     s3_client = init_client()
@@ -269,6 +278,10 @@ def main():
                 print(
                     f"Lifecycle policy set to delete objects after {args.lifecycle_policy} days"
                 )
+
+        if args.delete_file:
+            if delete_file(s3_client, args.delete_file, args.bucket_name):
+                print("File deleted successfully")
 
     if args.list_buckets:
         buckets = list_buckets(s3_client)

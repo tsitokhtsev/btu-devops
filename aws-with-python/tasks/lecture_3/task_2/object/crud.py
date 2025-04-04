@@ -95,3 +95,12 @@ def multipart_upload(aws_s3_client, filename, bucket_name):
     except Exception as e:
         print(f"Error completing multipart upload: {e}")
         return False
+
+
+def delete_file(aws_s3_client, bucket_name, filename):
+    try:
+        aws_s3_client.delete_object(Bucket=bucket_name, Key=filename)
+        return True
+    except Exception as e:
+        print(f"Error deleting file: {e}")
+        return False
