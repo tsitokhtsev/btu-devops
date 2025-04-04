@@ -3,6 +3,11 @@ from botocore.exceptions import ClientError
 from auth import init_client
 from bucket.crud import list_buckets, create_bucket, delete_bucket, bucket_exists
 from bucket.policy import read_bucket_policy, assign_policy
+from bucket.versioning import (
+    bucket_versioning_enabled,
+    get_file_versions,
+    upload_previous_file_version,
+)
 from object.crud import (
     delete_file,
     download_file_and_upload_to_s3,
@@ -217,6 +222,34 @@ parser.add_argument(
 )
 
 
+parser.add_argument(
+    "-ve",
+    "--versioning_enabled",
+    type=str,
+    help="Check if versioning is enabled",
+    choices=["False", "True"],
+    nargs="?",
+    const="True",
+    default="False",
+)
+
+parser.add_argument(
+    "-gfv",
+    "--get_file_versions",
+    type=str,
+    help="Get file versions",
+    default=None,
+)
+
+parser.add_argument(
+    "-upfv",
+    "--upload_previous_file_version",
+    type=str,
+    help="Upload previous version",
+    default=None,
+)
+
+
 def main():
     s3_client = init_client()
     args = parser.parse_args()
@@ -282,6 +315,20 @@ def main():
         if args.delete_file:
             if delete_file(s3_client, args.delete_file, args.bucket_name):
                 print("File deleted successfully")
+
+        if args.versioning_enabled == "True":
+            print(
+                f"Bucket versioning enabled: {bucket_versioning_enabled(s3_client, args.bucket_name)}"
+            )
+
+        if args.get_file_versions:
+            get_file_versions(s3_client, args.bucket_name, args.get_file_versions)
+
+        if args.upload_previous_file_version:
+            if upload_previous_file_version(
+                s3_client, args.bucket_name, args.upload_previous_file_version
+            ):
+                print("Previous version uploaded successfully")
 
     if args.list_buckets:
         buckets = list_buckets(s3_client)
