@@ -140,20 +140,30 @@ def upload_local_file(
     mime_type = magic.from_file(file_path, mime=True)
     content_type = None
     file_name = None
+    folder_name = "unknown"
 
     for type, ctype in allowed_types.items():
         if mime_type == ctype:
             content_type = ctype
+            folder_name = type
             file_name = filename if keep_file_name else generate_file_name(type)
+            break
 
     if not content_type:
-        raise ValueError("Invalid type")
+        print(
+            f"Warning: Unknown MIME type '{mime_type}' for file '{filename}'. Uploading to '{folder_name}' folder."
+        )
+        file_extension = filename.split(".")[-1] if "." in filename else "bin"
+        file_name = filename if keep_file_name else generate_file_name(file_extension)
+        content_type = mime_type
+
+    s3_key = f"{folder_name}/{file_name}"
 
     if upload_type == "upload_file":
         aws_s3_client.upload_file(
-            file_path,
+            str(file_path),
             bucket_name,
-            file_name,
+            s3_key,
             ExtraArgs={"ContentType": content_type},
         )
     elif upload_type == "upload_fileobj":
@@ -161,7 +171,7 @@ def upload_local_file(
             aws_s3_client.upload_fileobj(
                 file,
                 bucket_name,
-                file_name,
+                s3_key,
                 ExtraArgs={"ContentType": content_type},
             )
     elif upload_type == "put_object":
@@ -169,15 +179,15 @@ def upload_local_file(
             aws_s3_client.put_object(
                 Body=file.read(),
                 Bucket=bucket_name,
-                Key=file_name,
+                Key=s3_key,
                 ExtraArgs={"ContentType": content_type},
             )
     elif upload_type == "multipart_upload":
         multipart_upload(
             aws_s3_client,
             bucket_name,
-            file_path,
-            file_name,
+            str(file_path),
+            s3_key,
             content_type,
         )
 
@@ -185,5 +195,5 @@ def upload_local_file(
     return "https://s3-{0}.amazonaws.com/{1}/{2}".format(
         s3_region,
         bucket_name,
-        file_name,
+        s3_key,
     )
