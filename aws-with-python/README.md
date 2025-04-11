@@ -2,10 +2,10 @@
 
 ## Tasks
 
-- [Lecture 1](tasks/lecture_1/README.md)
-- [Lecture 2](tasks/lecture_2/README.md)
-- [Lecture 3](tasks/lecture_3/README.md)
-- [Lecture 4](tasks/lecture_4/README.md)
+- [Lecture 1](tasks/lecture_1)
+- [Lecture 2](tasks/lecture_2)
+- [Lecture 3](tasks/lecture_3)
+- [Lecture 4](tasks/lecture_4)
 
 ## Catch Ups
 
