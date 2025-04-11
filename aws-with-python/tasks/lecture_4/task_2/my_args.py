@@ -215,4 +215,14 @@ def object_arguments(parser):
         default=None,
     )
 
+    parser.add_argument(
+        "-cov",
+        "--cleanup_old_versions",
+        nargs="+",
+        metavar="FILE_NAME",
+        type=str,
+        help="List of file names to clean up old versions (older than 6 months).",
+        default=None,
+    )
+
     return parser

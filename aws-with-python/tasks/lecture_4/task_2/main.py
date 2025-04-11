@@ -7,7 +7,11 @@ from bucket.versioning import versioning
 from bucket.encryption import set_bucket_encryption, read_bucket_encryption
 from bucket.organize import object_per_extension
 from object.crud import download_file_and_upload_to_s3, get_objects, upload_local_file
-from object.versioning import list_object_versions, rollback_to_version
+from object.versioning import (
+    delete_old_versions,
+    list_object_versions,
+    rollback_to_version,
+)
 from my_args import bucket_arguments, object_arguments
 import argparse
 
@@ -109,6 +113,10 @@ def main():
                     rollback_to_version(
                         s3_client, args.bucket_name, args.name, args.roll_back_to
                     )
+
+            if args.cleanup_old_versions:
+                for file_name in args.cleanup_old_versions:
+                    delete_old_versions(s3_client, args.bucket_name, file_name)
 
         case "list_buckets":
             buckets = list_buckets(s3_client)
