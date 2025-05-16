@@ -12,3 +12,4 @@
 
 - [Lecture 3](catch-ups/lecture_3)
 - [Lecture 4](catch-ups/lecture_4)
+- [Lecture 5](catch-ups/lecture_5)
