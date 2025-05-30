@@ -9,6 +9,7 @@
 - [Lecture 5](tasks/lecture_5)
 - [Lecture 6](tasks/lecture_6)
 - [Lecture 7](tasks/lecture_7)
+- [Lecture 8](tasks/lecture_8)
 
 ## Catch Ups
 
