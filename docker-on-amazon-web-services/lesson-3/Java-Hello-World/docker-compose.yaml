@@ -1,0 +1,7 @@
+version: '3.8'
+services:
+  java-demo:
+    container_name: java-demo
+    # image: from ecr
+    ports:
+      - "80:8080"
