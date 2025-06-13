@@ -18,3 +18,4 @@
 - [Lecture 5](catch-ups/lecture_5)
 - [Lecture 6](catch-ups/lecture_6)
 - [Lecture 7](catch-ups/lecture_7)
+- [Lecture 8](catch-ups/lecture_8)
