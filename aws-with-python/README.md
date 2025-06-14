@@ -21,3 +21,4 @@
 - [Lecture 7](catch-ups/lecture_7)
 - [Lecture 8](catch-ups/lecture_8)
 - [Lecture 9](catch-ups/lecture_9)
+- [Lecture 10](catch-ups/lecture_10)
