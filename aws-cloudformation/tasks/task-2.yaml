@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "Create a EC2 instance and a S3 bucket for logging"
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Configuration"
+        Parameters:
+          - AppEnv
+          - InstanceType
+          - AmiID
+          - LogBucketNamePrefix
+
+    ParameterLabels:
+      AppEnv:
+        default: "Environment (dev, staging, production)"
+      InstanceType:
+        default: "EC2 instance type"
+      AmiID:
+        default: "Amazon Machine Image ID"
+      LogBucketNamePrefix:
+        default: "S3 bucket name prefix"
+
+Parameters:
+  AppEnv:
+    Description: "The application environment (production, staging, dev)."
+    Type: String
+    AllowedValues:
+      - production
+      - staging
+      - dev
+
+  InstanceType:
+    Description: "The EC2 instance type (t3.micro or t3.small)."
+    Type: String
+    Default: USE_MAPPING
+
+  AmiID:
+    Description: "The Amazon Machine Image ID."
+    Type: AWS::EC2::Image::Id
+
+  LogBucketNamePrefix:
+    Description: "The prefix for the S3 bucket name."
+    Type: String
+
+Mappings:
+  Environment:
+    production:
+      InstanceType: t3.small
+    staging:
+      InstanceType: t3.micro
+    dev:
+      InstanceType: t3.micro
+
+Conditions:
+  UseMappingForInstanceType: !Equals [!Ref InstanceType, USE_MAPPING]
+
+Resources:
+  LogBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${LogBucketNamePrefix}-${AWS::AccountId}
+
+  WebServerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AmiID
+      InstanceType: !If
+        - UseMappingForInstanceType
+        - !FindInMap [Environment, !Ref AppEnv, InstanceType]
+        - !Ref InstanceType
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          cat << 'EOF' > /etc/profile.d/variables.sh
+          export LOG_BUCKET=${LogBucket}
+          export APP_ENV=${AppEnv}
+          EOF
+
+Outputs:
+  BucketName:
+    Description: "The name of the S3 bucket."
+    Value: !Ref LogBucket
