@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Template compliant with custom cfn-lint tagging rules (E9001).
+
+Parameters:
+  AmiID:
+    Type: AWS::EC2::Image::Id
+
+Resources:
+  FreeTierEC2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AmiID
+      InstanceType: t2.micro
+      Tags:
+        - Key: FreeTierEligible
+          Value: "true"
+
+  PerformanceEC2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AmiID
+      InstanceType: m5.large
+      Tags:
+        - Key: PerformanceCritical
+          Value: "false"
+
+  PriorityVolume:
+    Type: AWS::EC2::Volume
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Size: 50
+      VolumeType: gp3
+      Tags:
+        - Key: Priority
+          Value: "8000"
+
+  PublicBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: website-9001
+      WebsiteConfiguration:
+        IndexDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: PublicAccessAllowed
+          Value: "true"
