@@ -1,0 +1,61 @@
+Parameters:
+  EnvironmentType:
+    Type: String
+    AllowedValues:
+      - production
+      - test
+  CreateLoggingBucket:
+    Type: String
+    AllowedValues:
+      - true
+      - false
+
+Conditions:
+  ShouldCreateLoggingBucketCondition: !Equals
+    - !Ref CreateLoggingBucket
+    - true
+  IsProductionEnvironmentCondition: !Equals
+    - !Ref EnvironmentType
+    - production
+
+Resources:
+  LoggingS3Bucket:
+    Type: AWS::S3::Bucket
+    Condition: ShouldCreateLoggingBucketCondition
+    Properties:
+      BucketName: !Sub "${EnvironmentType}-logs-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicPolicy: false
+
+  LoggingS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: ShouldCreateLoggingBucketCondition
+    DependsOn: LoggingS3Bucket
+    Properties:
+      Bucket: !Ref LoggingS3Bucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - s3:GetObject
+            Effect: Allow
+            Resource: !Sub "arn:aws:s3:::${LoggingS3Bucket}/*"
+            Principal: "*"
+
+  ProductionEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0fa3fe0fa7920f68e
+      InstanceType: t3.micro
+    Condition: IsProductionEnvironmentCondition
+
+Outputs:
+  LoggingBucketName:
+    Description: Logging S3 bucket name
+    Value: !If [ShouldCreateLoggingBucketCondition, !Ref LoggingS3Bucket, ""]
+    Condition: ShouldCreateLoggingBucketCondition
+  ProductionInstanceId:
+    Description: Production EC2 instance ID
+    Value:
+      !If [IsProductionEnvironmentCondition, !Ref ProductionEC2Instance, ""]
+    Condition: IsProductionEnvironmentCondition
