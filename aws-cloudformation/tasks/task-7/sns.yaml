@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: AWS CloudFormation - Nested stacks - SNS template.
+
+Resources:
+  MyTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: "MyApplicationAlerts"
+
+Outputs:
+  TopicName:
+    Value: !GetAtt MyTopic.TopicName
