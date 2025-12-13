@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: AWS CloudFormation - Cross-stack references - RDS template.
+
+Resources:
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnets available for the RDS DB Instance
+      SubnetIds:
+        - !ImportValue cfn-workshop-PublicSubnet1
+        - !ImportValue cfn-workshop-PublicSubnet2
+
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow Port 3306 from Web Server
+      VpcId: !ImportValue cfn-workshop-VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 0.0.0.0/0
+
+  MyDB:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: "20"
+      Engine: mysql
+      DBName: MyDatabase
+      MasterUsername: admin
+      MasterUserPassword: Password123
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref DBSecurityGroup
+      PubliclyAccessible: true
+
+Outputs:
+  DBInstanceIdentifier:
+    Value: !Ref MyDB
+    Export:
+      Name: cfn-workshop-DBIdentifier
