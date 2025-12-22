@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: AWS CloudFormation - S3 Triggered Lambda to HuggingFace and DynamoDB
+
+Parameters:
+  LambdaExecutionRoleArn:
+    Type: String
+    Description: Use the pre-created LabRole ARN
+
+Resources:
+  ObjectDetectionTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: "ObjectDetectionData"
+      AttributeDefinitions:
+        - AttributeName: "id"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "id"
+          KeyType: "HASH"
+      BillingMode: PAY_PER_REQUEST
+
+  ImageUploadBucket:
+    Type: AWS::S3::Bucket
+    DependsOn: LambdaConfigPermission
+    Properties:
+      BucketName: !Sub "image-upload-lab-${AWS::AccountId}"
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Function: !GetAtt PythonFunction.Arn
+
+  LambdaConfigPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt PythonFunction.Arn
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub "arn:aws:s3:::image-upload-lab-${AWS::AccountId}"
+
+  PythonFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: cfn-python-function
+      Description: Processes S3 images via HuggingFace and saves to DynamoDB
+      Runtime: python3.12
+      Role: !Ref LambdaExecutionRoleArn
+      Handler: lambda_function.lambda_handler
+      Code: lambda/
+      Timeout: 30
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: "ObjectDetectionData"
+
+Outputs:
+  LambdaFunction:
+    Description: AWS Lambda Python Function
+    Value: !Ref PythonFunction
+
