@@ -1,0 +1,126 @@
+- name: Lab | Web /health + PostgreSQL (AL2023)
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    lab_username: "{{ lab_username | default('MISSING_USERNAME') }}"
+    web_url: "{{ web_url | default('') }}"
+
+    # Defaults that usually work on AL2023; adjust if your image uses versioned names
+    # pg_service_name: "{{ pg_service_name | default('postgresql') }}"
+    # pg_setup_cmd: "{{ pg_setup_cmd | default('postgresql-setup --initdb') }}"
+    # pg_data_dir: "{{ pg_data_dir | default('/var/lib/pgsql/data') }}"
+
+    pg_service_name: "postgresql"
+    pg_setup_cmd: "postgresql-setup --initdb"
+    pg_data_dir: "/var/lib/pgsql/data"
+
+  tasks:
+    # -------------------- COMMON --------------------
+    - name: COMMON | Install base tools
+      ansible.builtin.package:
+        name: [git, tar, unzip, curl-minimal]
+        state: present
+
+    # -------------------- WEB -----------------------
+    - name: WEB | Install Apache (httpd)
+      ansible.builtin.package:
+        name: httpd
+        state: present
+      when: "'web' in group_names"
+
+    - name: WEB | Enable + start Apache
+      ansible.builtin.service:
+        name: httpd
+        enabled: true
+        state: started
+      when: "'web' in group_names"
+
+    - name: WEB | Create /health endpoint
+      ansible.builtin.copy:
+        dest: /var/www/html/health
+        content: |
+          OK
+          user={{ lab_username }}
+        mode: "0644"
+      when: "'web' in group_names"
+
+    # -------------------- DB ------------------------
+    - name: DB | Install PostgreSQL server
+      ansible.builtin.package:
+        name:
+          - postgresql16
+          - postgresql16-server
+        state: present
+      when: "'db' in group_names"
+
+    - name: DB | Initialize cluster if needed
+      ansible.builtin.shell: "{{ pg_setup_cmd }}"
+      args:
+        creates: "{{ pg_data_dir }}/PG_VERSION"
+      when: "'db' in group_names"
+
+    - name: DB | Enable + start PostgreSQL
+      ansible.builtin.service:
+        name: "{{ pg_service_name }}"
+        enabled: true
+        state: started
+      when: "'db' in group_names"
+
+    - name: DB | Create database 'lab'
+      become_user: postgres
+      ansible.builtin.shell: |
+        psql -tAc "SELECT 1 FROM pg_database WHERE datname='lab'" | grep -q 1 || createdb lab
+      changed_when: false
+      when: "'db' in group_names"
+
+    - name: DB | Create table public.users if not exists
+      become_user: postgres
+      ansible.builtin.shell: |
+        psql -d lab -tAc "CREATE TABLE IF NOT EXISTS public.users (username text, ts text);"
+      changed_when: false
+      when: "'db' in group_names"
+
+    - name: DB | Insert username once (idempotent)
+      become_user: postgres
+      ansible.builtin.shell: |
+        psql -d lab -tAc "
+          INSERT INTO public.users(username, ts)
+          SELECT '{{ lab_username | tojson }}', to_char(now(),'YYYY-MM-DD\"T\"HH24:MI:SS')
+          WHERE NOT EXISTS (
+            SELECT 1 FROM public.users WHERE username = '{{ lab_username | tojson }}'
+          );"
+      register: insert_out
+      changed_when: insert_out.rc == 0
+      when: "'db' in group_names"
+
+    # -------------------- VALIDATION ----------------
+    - name: VALIDATE | Ensure web_url provided
+      ansible.builtin.assert:
+        that: ["web_url != ''"]
+        fail_msg: "Set -e web_url=http://<web_ip>/health"
+
+    - name: VALIDATE | curl /health
+      run_once: true
+      ansible.builtin.shell: "curl -fsS {{ web_url }}"
+      register: curl_health
+      changed_when: false
+
+    - name: VALIDATE | /health contains username
+      ansible.builtin.assert:
+        that:
+          - "'user=' ~ lab_username in curl_health.stdout"
+        fail_msg: "Health endpoint does not contain expected user={{ lab_username }}"
+
+    - name: VALIDATE | Show DB rows
+      become_user: postgres
+      ansible.builtin.shell: "psql -d lab -tAc 'SELECT * FROM public.users LIMIT 10;'"
+      register: rows
+      changed_when: false
+      when: "'db' in group_names"
+
+    - name: VALIDATE | Debug DB rows
+      ansible.builtin.debug:
+        msg: "{{ rows.stdout_lines | default([]) }}"
+      when: "'db' in group_names"
